@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import { useParams } from "react-router-dom";
 import { base_url } from "./Base_url";
-import axios from "axios";
-import { Col, Row, Image } from "react-bootstrap";
+import Row from "react-bootstrap/Row";
+import Col from "react-bootstrap/Col";
+import Image from "react-bootstrap/Image";
 import ListGroup from "react-bootstrap/ListGroup";
-import Restop from "./Restop";
-import RestReview from "./RestReview";
+const Restop = lazy(() => import("./Restop"));
+const RestReview = lazy(() => import("./RestReview"));
 
 function ViewRestaurant() {
   const [RestDetails, setrestDetails] = useState({});
@@ -16,27 +17,45 @@ function ViewRestaurant() {
 
   //destructuring
   const { id } = useParams();
-  console.log(id);
 
   //api call for fetch particular restaurant details
 
-  const fetchData = async () => {
-    const { data } = await axios.get(`${base_url}/restaurants/${id}`);
-    console.log(data);
-    setrestDetails(data);
-  };
-  console.log(RestDetails);
-
   useEffect(() => {
-    fetchData();
-  }, []);
+    let isMounted = true
+    const cacheKey = `restaurants:detail:${id}`
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached)
+        if (isMounted) setrestDetails(parsed)
+      } catch {}
+    }
+
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${base_url}/restaurants/${id}`)
+        if (!response.ok) {
+          throw new Error(`Failed to fetch restaurant: ${response.status}`)
+        }
+        const data = await response.json()
+        if (isMounted) setrestDetails(data)
+        localStorage.setItem(cacheKey, JSON.stringify(data))
+      } catch (err) {
+        // ignore, keep cached
+      }
+    }
+    fetchData()
+    return () => { isMounted = false }
+  }, [id])
+
+  
 
   return (
     <div>
       {RestDetails ? (
         <Row>
           <Col sm={12} md={3}>
-            <Image className="m-3 border rounded" src={`${RestDetails.photograph}`} fluid />
+            <Image className="m-3 border rounded" src={`${RestDetails.photograph}`} loading="lazy" fluid />
           </Col>
           <Col className="mt-3" md={8}>
             <h2>{RestDetails.name}</h2>
@@ -47,11 +66,15 @@ function ViewRestaurant() {
               </ListGroup.Item>
               <ListGroup.Item>
                 {" "}
-                <Restop op={RestDetails.operating_hours} />{" "}
+                <Suspense fallback={null}>
+                  <Restop op={RestDetails.operating_hours} />
+                </Suspense>{" "}
               </ListGroup.Item>
               <ListGroup.Item>
                 {" "}
-                <RestReview review={RestDetails.reviews} />{" "}
+                <Suspense fallback={null}>
+                  <RestReview review={RestDetails.reviews} />
+                </Suspense>{" "}
               </ListGroup.Item>
             </ListGroup>
           </Col>
