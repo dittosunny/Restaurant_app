@@ -1,6 +1,6 @@
-import axios from 'axios'
 import React, { useEffect, useState } from 'react'
-import {Row,Col} from 'react-bootstrap'
+import Row from 'react-bootstrap/Row'
+import Col from 'react-bootstrap/Col'
 import RestaurantCard from '../RestaurantCard'
 import { base_url } from '../Base_url'
 
@@ -11,10 +11,27 @@ function Allrestaurants() {
   const [allitems,setAllitems] = useState([])
   //code for api calls
   const fetchData = async()=>{
-    const response = await axios.get(`${base_url}/restaurants`)
-    setAllitems(response.data)
+    const cacheKey = 'restaurants:list'
+    const cached = localStorage.getItem(cacheKey)
+    if (cached) {
+      try {
+        setAllitems(JSON.parse(cached))
+      } catch {}
+    }
+
+    try {
+      const response = await fetch(`${base_url}/restaurants`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch restaurants: ${response.status}`)
+      }
+      const data = await response.json()
+      setAllitems(data)
+      localStorage.setItem(cacheKey, JSON.stringify(data))
+    } catch (err) {
+      // keep showing cached data on failure
+    }
   }
-  console.log(allitems);//array(10)
+  
 
   useEffect(()=>{
     fetchData()
@@ -24,7 +41,7 @@ function Allrestaurants() {
     <Row>
       {
         allitems.map(item=>(
-          <Col sm={12} md={6} lg={4} xl={3}>
+          <Col key={item.id} sm={12} md={6} lg={4} xl={3}>
             {/* {destructuring} */}
             <RestaurantCard restaurants={item}/>                  
           </Col>

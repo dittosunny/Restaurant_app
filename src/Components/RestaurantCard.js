@@ -1,15 +1,21 @@
-import React from "react";
+import React, { memo } from "react";
 import Card from "react-bootstrap/Card";
 import { Link } from "react-router-dom";
 
 
 function RestaurantCard({ restaurants }) {
-  console.log(restaurants);
   return (
     <div>
-      <Link to={`/view/${restaurants.id}`} style={{textDecoration:'none'}}>
+      <Link
+        to={`/view/${restaurants.id}`}
+        style={{textDecoration:'none'}}
+        onMouseEnter={() => {
+          // prefetch the detail route chunk
+          import('./ViewRestaurant')
+        }}
+      >
         <Card className="m-4">
-          <Card.Img variant="top" src={restaurants.photograph} />
+          <Card.Img variant="top" src={restaurants.photograph} loading="lazy" />
           <Card.Body>
             <Card.Title style={{ color: "black" }}>
               {restaurants.name}
@@ -24,4 +30,4 @@ function RestaurantCard({ restaurants }) {
   );
 }
 
-export default RestaurantCard;
+export default memo(RestaurantCard);

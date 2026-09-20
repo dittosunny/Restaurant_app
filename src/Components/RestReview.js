@@ -6,7 +6,6 @@ import Collapse from "react-bootstrap/Collapse";
 function RestReview({ review }) {
   const [open, setOpen] = useState(false);
 
-  console.log(review);
   return (
     <div>
       <Button
